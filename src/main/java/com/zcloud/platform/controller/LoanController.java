@@ -394,6 +394,242 @@ public class LoanController {
         }
     }
 
+    // ==================== RISK ASSESSMENT ====================
+
+    /**
+     * Comprehensive inline risk assessment — calculates everything in the controller
+     * with deeply nested conditionals instead of delegating to a service.
+     */
+    @GetMapping("/{id}/risk-assessment")
+    public ResponseEntity<?> getRiskAssessment(@PathVariable UUID id) {
+        LoanApplication loan = loanService.getLoanApplication(id);
+        if (loan == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Map<String, Object> risk = new LinkedHashMap<>();
+        List<String> flags = new ArrayList<>();
+        int riskScore = 100;
+        String riskGrade;
+        double adjustedRate = loan.getInterestRate() != null ? loan.getInterestRate().doubleValue() : 5.5;
+
+        // Deeply nested credit score risk evaluation
+        List<CreditReport> creditReports = creditReportRepository.findByLoanApplicationId(id);
+        if (creditReports != null && !creditReports.isEmpty()) {
+            int avgScore = (int) creditReports.stream()
+                    .filter(cr -> cr.getScore() != null)
+                    .mapToInt(CreditReport::getScore)
+                    .average().orElse(0);
+            risk.put("averageCreditScore", avgScore);
+
+            if (avgScore >= 760) {
+                riskScore -= 0;
+                risk.put("creditTier", "EXCELLENT");
+                if (loan.getLoanType() != null && loan.getLoanType().equals("CONVENTIONAL")) {
+                    adjustedRate -= 0.25;
+                } else if (loan.getLoanType() != null && loan.getLoanType().equals("JUMBO")) {
+                    adjustedRate -= 0.125;
+                } else {
+                    adjustedRate -= 0.1;
+                }
+            } else if (avgScore >= 700) {
+                riskScore -= 5;
+                risk.put("creditTier", "GOOD");
+                if (loan.getLoanType() != null) {
+                    if (loan.getLoanType().equals("CONVENTIONAL")) {
+                        adjustedRate += 0.0;
+                    } else if (loan.getLoanType().equals("FHA")) {
+                        adjustedRate -= 0.1;
+                    } else if (loan.getLoanType().equals("VA")) {
+                        adjustedRate -= 0.15;
+                    } else {
+                        adjustedRate += 0.05;
+                    }
+                }
+            } else if (avgScore >= 660) {
+                riskScore -= 15;
+                risk.put("creditTier", "FAIR");
+                flags.add("BELOW_PREFERRED_CREDIT");
+                if (loan.getLoanType() != null) {
+                    if (loan.getLoanType().equals("CONVENTIONAL")) {
+                        adjustedRate += 0.375;
+                        if (loan.getLoanAmount() != null && loan.getLoanAmount().doubleValue() > 417000) {
+                            adjustedRate += 0.25;
+                            flags.add("HIGH_BALANCE_LOW_CREDIT");
+                        }
+                    } else if (loan.getLoanType().equals("FHA")) {
+                        adjustedRate += 0.125;
+                    } else if (loan.getLoanType().equals("JUMBO")) {
+                        adjustedRate += 0.5;
+                        flags.add("JUMBO_LOW_CREDIT_WARNING");
+                    } else {
+                        adjustedRate += 0.25;
+                    }
+                } else {
+                    adjustedRate += 0.25;
+                }
+            } else if (avgScore >= 620) {
+                riskScore -= 25;
+                risk.put("creditTier", "SUBPRIME");
+                flags.add("SUBPRIME_BORROWER");
+                adjustedRate += 0.75;
+                if (loan.getLoanType() != null && loan.getLoanType().equals("CONVENTIONAL")) {
+                    if (loan.getDownPayment() != null && loan.getLoanAmount() != null) {
+                        double ltv = loan.getLoanAmount().doubleValue() /
+                                (loan.getLoanAmount().doubleValue() + loan.getDownPayment().doubleValue());
+                        if (ltv > 0.90) {
+                            riskScore -= 10;
+                            adjustedRate += 0.5;
+                            flags.add("HIGH_LTV_LOW_CREDIT");
+                        } else if (ltv > 0.80) {
+                            riskScore -= 5;
+                            adjustedRate += 0.25;
+                            flags.add("PMI_REQUIRED_LOW_CREDIT");
+                        }
+                    }
+                } else if (loan.getLoanType() != null && loan.getLoanType().equals("FHA")) {
+                    adjustedRate += 0.25;
+                    flags.add("FHA_SUBPRIME");
+                }
+            } else if (avgScore >= 580) {
+                riskScore -= 35;
+                risk.put("creditTier", "DEEP_SUBPRIME");
+                flags.add("DEEP_SUBPRIME_BORROWER");
+                flags.add("MANUAL_REVIEW_REQUIRED");
+                adjustedRate += 1.25;
+                if (loan.getLoanType() != null) {
+                    if (loan.getLoanType().equals("CONVENTIONAL") || loan.getLoanType().equals("JUMBO")) {
+                        flags.add("LIKELY_DENIAL_CONVENTIONAL");
+                        riskScore -= 15;
+                    } else if (loan.getLoanType().equals("FHA")) {
+                        if (loan.getDownPayment() != null && loan.getLoanAmount() != null) {
+                            double downPercent = loan.getDownPayment().doubleValue() /
+                                    (loan.getLoanAmount().doubleValue() + loan.getDownPayment().doubleValue());
+                            if (downPercent < 0.035) {
+                                flags.add("INSUFFICIENT_DOWN_PAYMENT_FHA");
+                                riskScore -= 10;
+                            } else if (downPercent < 0.10) {
+                                flags.add("MINIMUM_DOWN_FHA");
+                                riskScore -= 5;
+                            }
+                        }
+                    }
+                }
+            } else {
+                riskScore -= 50;
+                risk.put("creditTier", "UNQUALIFIED");
+                flags.add("CREDIT_BELOW_MINIMUM");
+                flags.add("AUTOMATIC_DENIAL_RECOMMENDED");
+                adjustedRate += 2.0;
+            }
+        } else {
+            riskScore -= 30;
+            flags.add("NO_CREDIT_DATA");
+            risk.put("creditTier", "UNKNOWN");
+        }
+
+        // DTI risk evaluation with nested conditions
+        List<BorrowerEmployment> employments = borrowerEmploymentRepository.findByLoanApplicationId(id);
+        BigDecimal totalIncome = employments.stream()
+                .filter(e -> e.getIsCurrent() != null && e.getIsCurrent())
+                .map(BorrowerEmployment::getMonthlyIncome)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (totalIncome.compareTo(BigDecimal.ZERO) > 0 && loan.getMonthlyPayment() != null) {
+            double dti = loan.getMonthlyPayment().doubleValue() / totalIncome.doubleValue();
+            risk.put("dtiRatio", dti);
+
+            if (dti > 0.50) {
+                riskScore -= 25;
+                flags.add("DTI_EXTREMELY_HIGH");
+                if (loan.getLoanType() != null && loan.getLoanType().equals("CONVENTIONAL")) {
+                    flags.add("EXCEEDS_MAX_DTI_CONVENTIONAL");
+                } else if (loan.getLoanType() != null && loan.getLoanType().equals("FHA")) {
+                    if (dti > 0.57) {
+                        flags.add("EXCEEDS_MAX_DTI_FHA");
+                    } else {
+                        flags.add("REQUIRES_COMPENSATING_FACTORS");
+                    }
+                }
+            } else if (dti > Constants.MAX_DTI_RATIO) {
+                riskScore -= 15;
+                flags.add("DTI_HIGH");
+            } else if (dti > 0.36) {
+                riskScore -= 5;
+                flags.add("DTI_MODERATE");
+            }
+
+            // Employment stability check
+            if (employments.size() < 2) {
+                riskScore -= 5;
+                flags.add("LIMITED_EMPLOYMENT_HISTORY");
+            }
+            for (BorrowerEmployment emp : employments) {
+                if (emp.getIsCurrent() != null && emp.getIsCurrent()) {
+                    if (emp.getStartDate() != null) {
+                        long monthsEmployed = java.time.Period.between(emp.getStartDate(), LocalDate.now()).toTotalMonths();
+                        if (monthsEmployed < 6) {
+                            riskScore -= 10;
+                            flags.add("RECENT_JOB_CHANGE");
+                        } else if (monthsEmployed < 24) {
+                            riskScore -= 3;
+                            flags.add("SHORT_EMPLOYMENT_TENURE");
+                        }
+                    }
+                }
+            }
+        } else {
+            riskScore -= 20;
+            flags.add("NO_INCOME_DATA");
+        }
+
+        // Asset adequacy check
+        List<BorrowerAsset> assets = borrowerAssetRepository.findByLoanApplicationId(id);
+        BigDecimal totalAssets = assets.stream()
+                .map(BorrowerAsset::getBalance)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (loan.getLoanAmount() != null) {
+            double reserveMonths = 0;
+            if (loan.getMonthlyPayment() != null && loan.getMonthlyPayment().doubleValue() > 0) {
+                reserveMonths = totalAssets.doubleValue() / loan.getMonthlyPayment().doubleValue();
+            }
+            risk.put("reserveMonths", reserveMonths);
+
+            if (reserveMonths < 2) {
+                riskScore -= 10;
+                flags.add("INSUFFICIENT_RESERVES");
+            } else if (reserveMonths < 6) {
+                riskScore -= 3;
+                flags.add("LOW_RESERVES");
+            }
+        }
+
+        // Final grade calculation
+        riskScore = Math.max(0, Math.min(100, riskScore));
+        if (riskScore >= 85) {
+            riskGrade = "A";
+        } else if (riskScore >= 70) {
+            riskGrade = "B";
+        } else if (riskScore >= 55) {
+            riskGrade = "C";
+        } else if (riskScore >= 40) {
+            riskGrade = "D";
+        } else {
+            riskGrade = "F";
+        }
+
+        risk.put("riskScore", riskScore);
+        risk.put("riskGrade", riskGrade);
+        risk.put("flags", flags);
+        risk.put("adjustedRate", Math.round(adjustedRate * 1000.0) / 1000.0);
+        risk.put("flagCount", flags.size());
+
+        return ResponseEntity.ok(risk);
+    }
+
     // ==================== CREDIT PULL ====================
 
     /**

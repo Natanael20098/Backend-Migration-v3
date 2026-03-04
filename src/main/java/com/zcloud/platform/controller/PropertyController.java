@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Timestamp;
@@ -53,6 +54,69 @@ public class PropertyController {
 
     @Autowired
     private PropertyTaxRecordRepository propertyTaxRecordRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    // Anti-pattern: static mutable cache with no expiry or size limit
+    private static final Map<String, List<Map<String, Object>>> searchCache = new HashMap<>();
+    private static int searchCount = 0;
+
+    // Anti-pattern: hardcoded backup database connection string
+    private static final String BACKUP_DB_URL = "jdbc:postgresql://backup-db.homelend.internal:5432/homelend?user=admin&password=HomeLend2026Backup!";
+    private static final String INTERNAL_API_KEY = "hlp_sk_live_4f8a2b1c9d3e7f6a5b0c8d2e1f4a7b3c";
+
+    // ==================== SEARCH (SQL INJECTION) ====================
+
+    /**
+     * Search properties using raw SQL.
+     * Anti-pattern: SQL injection via string concatenation, mixed data access (JPA + JDBC).
+     */
+    @GetMapping("/search")
+    public ResponseEntity<?> searchProperties(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir) {
+
+        searchCount++;
+
+        // Anti-pattern: check static cache first
+        String cacheKey = query + "|" + sortBy + "|" + sortDir;
+        if (searchCache.containsKey(cacheKey)) {
+            return ResponseEntity.ok(searchCache.get(cacheKey));
+        }
+
+        // Anti-pattern: SQL injection — user input concatenated directly into SQL
+        StringBuilder sql = new StringBuilder("SELECT * FROM properties WHERE 1=1");
+
+        if (query != null && !query.isEmpty()) {
+            sql.append(" AND (address_line1 ILIKE '%" + query + "%'");
+            sql.append(" OR city ILIKE '%" + query + "%'");
+            sql.append(" OR state ILIKE '%" + query + "%')");
+        }
+
+        if (sortBy != null && !sortBy.isEmpty()) {
+            sql.append(" ORDER BY " + sortBy);
+            if (sortDir != null && sortDir.equalsIgnoreCase("desc")) {
+                sql.append(" DESC");
+            } else {
+                sql.append(" ASC");
+            }
+        }
+
+        try {
+            List<Map<String, Object>> results = jdbcTemplate.queryForList(sql.toString());
+            // Anti-pattern: cache unbounded results in static map
+            searchCache.put(cacheKey, results);
+            log.info("Property search #{}: query='{}', found {} results (SQL: {})",
+                    searchCount, query, results.size(), sql.toString());
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            // Anti-pattern: swallowed exception — returns empty list instead of error
+            log.error("Search failed: {}", e.getMessage());
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+    }
 
     // ==================== LIST / SEARCH ====================
 

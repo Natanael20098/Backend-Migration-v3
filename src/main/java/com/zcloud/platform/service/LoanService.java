@@ -1,6 +1,7 @@
 package com.zcloud.platform.service;
 
 import com.zcloud.platform.config.Constants;
+import com.zcloud.platform.controller.AuthController;
 import com.zcloud.platform.model.*;
 import com.zcloud.platform.repository.*;
 
