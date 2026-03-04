@@ -21,6 +21,9 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
+        localStorage.removeItem('userEmail');
+        document.cookie = 'hlp_token=; path=/; max-age=0';
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);

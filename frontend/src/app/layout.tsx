@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import Sidebar from '@/components/Sidebar';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -15,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'HomeLend Pro - Real Estate & Mortgage Platform',
-  description: 'Complete real estate and mortgage management platform with API testing capabilities',
+  description: 'Complete real estate and mortgage management platform',
 };
 
 export default function RootLayout({
@@ -28,10 +27,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Sidebar />
-        <main className="ml-64 min-h-screen bg-gray-50">
-          {children}
-        </main>
+        {children}
       </body>
     </html>
   );
