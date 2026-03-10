@@ -1,0 +1,29 @@
+# Branch Context
+
+## Task
+Epic: Foundation and Migration Baseline
+
+Tasks:
+- Define API compatibility rules for frontend-preserving migration: Define explicit compatibility rules for preserving existing external API contracts while migrating b
+- Define shared PostgreSQL access policy for parallel-run migration: Define how new FastAPI services will use the existing PostgreSQL instance and schema during migratio
+- Map legacy backend domains, modules, and service boundaries: Review the analyzed Java monolith structure and produce a migration boundary map covering auth, prop
+- Define cutover strategy and validation checklist for service-by-service replacement: Convert the chosen coexistence approach into a practical cutover playbook for migrating services one
+- Define shared PostgreSQL access policy for parallel-run migration: Define how new FastAPI services will use the existing PostgreSQL instance and schema during migratio
+- Define API compatibility rules for frontend-preserving migration: Define explicit compati
+
+## Execution Log
+
+### [2026-03-10T20:26:51.557Z] BUILD Phase
+**Tasks:** Define API compatibility rules for frontend-preserving migration, Map legacy backend domains, modules, and service boundaries, Define API compatibility rules for frontend-preserving migration, Map legacy backend domains, modules, and service boundaries, Define shared PostgreSQL access policy for parallel-run migration, Define cutover strategy and validation checklist for service-by-service replacement, Define shared PostgreSQL access policy for parallel-run migration, Define cutover strategy and validation checklist for service-by-service replacement
+**Summary:** All 8 tasks are implemented as 4 cohesive documents (tasks 1&3, 2&4, 5&7, 6&8 were duplicates). Here is the complete summary:
+
+---
+
+## Implementation Summary
+
+### Files Created
+
+| File | Tasks Satisfied | Size |
+|------|----------------|------|
+| `doc/api-compatibility-rules.md` | Tasks 1 & 3 | 9.9 
+**Files modified:** none
