@@ -1,6 +1,6 @@
 #!/bin/bash
 # HomeLend Pro - Start/Stop Script
-# Usage: ./homelend.sh start | stop | status | restart
+# Usage: ./homelend.sh start | stop | status | restart | docker | docker-stop
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PID_DIR="$SCRIPT_DIR/.pids"
@@ -125,6 +125,40 @@ do_status() {
     echo "========================================="
 }
 
+do_docker_start() {
+    echo "========================================="
+    echo "  HomeLend Pro - Docker Stack (Up)"
+    echo "========================================="
+    if ! command -v docker &>/dev/null; then
+        echo "[Error] docker is not installed or not in PATH."
+        exit 1
+    fi
+    if [ ! -f "$SCRIPT_DIR/.env" ]; then
+        echo "[Warning] .env not found. Copy .env.example to .env and fill in values."
+        echo "          Continuing with defaults (most services will fail without real values)."
+    fi
+    cd "$SCRIPT_DIR"
+    docker compose up -d
+    echo ""
+    echo "  Gateway:      http://localhost:80"
+    echo "  Frontend:     http://localhost:3000"
+    echo "  Java API:     http://localhost:8080/api"
+    echo "  Auth Service: http://localhost:8001"
+    echo ""
+    echo "  Logs:   docker compose logs -f"
+    echo "  Status: docker compose ps"
+    echo "========================================="
+}
+
+do_docker_stop() {
+    echo "========================================="
+    echo "  HomeLend Pro - Docker Stack (Down)"
+    echo "========================================="
+    cd "$SCRIPT_DIR"
+    docker compose down
+    echo "========================================="
+}
+
 case "${1:-}" in
     start)
         do_start
@@ -141,13 +175,24 @@ case "${1:-}" in
     status)
         do_status
         ;;
+    docker)
+        do_docker_start
+        ;;
+    docker-stop)
+        do_docker_stop
+        ;;
     *)
-        echo "Usage: ./homelend.sh {start|stop|restart|status}"
+        echo "Usage: ./homelend.sh {start|stop|restart|status|docker|docker-stop}"
         echo ""
-        echo "  start   - Start API (port 8080) and Frontend (port 3000)"
-        echo "  stop    - Stop both services"
-        echo "  restart - Stop then start both services"
-        echo "  status  - Show running status"
+        echo "  Bare-metal (Maven + Node, no Docker):"
+        echo "  start        - Start API (port 8080) and Frontend (port 3000)"
+        echo "  stop         - Stop both services"
+        echo "  restart      - Stop then start both services"
+        echo "  status       - Show running status"
+        echo ""
+        echo "  Docker Compose (full stack with gateway):"
+        echo "  docker       - Start all services with docker compose up -d"
+        echo "  docker-stop  - Stop all services with docker compose down"
         exit 1
         ;;
 esac
