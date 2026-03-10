@@ -72,6 +72,7 @@ services:
     depends_on:
       - java-monolith
       - auth-service
+      - property-listing-service
     networks:
       - platform
     restart: unless-stopped
@@ -93,6 +94,20 @@ services:
       - platform
     restart: unless-stopped
 
+  # ── Property & Listing Service (FastAPI) ────────────────────────────────────
+  property-listing-service:
+    build:
+      # Context must be ./services so the shared/ module is accessible in the build
+      context: ./services
+      dockerfile: property-listing-service/Dockerfile
+    ports:
+      - "8002:8002"
+    env_file: .env
+    networks:
+      - platform
+    restart: unless-stopped
+    # No depends_on — database is external (Supabase)
+
   # ── Template: Adding a New FastAPI Service ────────────────────────────────────
   # Uncomment and customise this block when adding the next migrated service.
   # Also add an upstream + location block in gateway/nginx.conf.
@@ -102,7 +117,7 @@ services:
   #     context: ./services
   #     dockerfile: new-service/Dockerfile
   #   ports:
-  #     - "8002:8002"
+  #     - "8003:8003"
   #   env_file: .env
   #   networks: [platform]
   #   restart: unless-stopped
