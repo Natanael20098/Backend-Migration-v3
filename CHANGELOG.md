@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased] – 2025-01-31 16:00
+
+### Security
+- **Non-root container runtime**: All five FastAPI microservice containers now run as a non-root system user (`appuser`, uid/gid 1001). Previously all containers ran as root. The user is created in a single `RUN` layer using `addgroup`/`adduser` system flags. Application files are copied with `--chown=appuser:appuser`; Python dependencies are installed as root to `/usr/local` (world-readable) before the user switch, requiring no PATH changes.
+
+### Added
+- `HEALTHCHECK` directives added to all six service images:
+  - `services/auth-service/Dockerfile` — `GET http://localhost:8001/health` via `python -c "import urllib.request; ..."` (no extra packages needed)
+  - `services/property-listing-service/Dockerfile` — `GET http://localhost:8002/health`
+  - `services/underwriting-service/Dockerfile` — `GET http://localhost:8003/health`
+  - `services/closing-service/Dockerfile` — `GET http://localhost:8004/health`
+  - `services/client-crm-service/Dockerfile` — `GET http://localhost:8005/health`
+  - `frontend/Dockerfile` — `GET http://localhost:3000/` via `wget` (available in `node:20-alpine`); `start-period` is 15s (vs 10s for FastAPI) to allow Next.js bundle initialisation
+- All FastAPI Dockerfiles now document required runtime environment variables and exposed port in header comments.
+
+### Changed
+- `services/auth-service/Dockerfile` — Added `appuser` system user, `--chown=appuser:appuser` on COPY instructions, `USER appuser`, `HEALTHCHECK`, and runtime env var documentation.
+- `services/property-listing-service/Dockerfile` — Same hardening applied.
+- `services/underwriting-service/Dockerfile` — Same hardening applied.
+- `services/closing-service/Dockerfile` — Same hardening applied.
+- `services/client-crm-service/Dockerfile` — Same hardening applied.
+- `frontend/Dockerfile` — Added `HEALTHCHECK` directive (non-root user `nextjs:nodejs` was already present).
+
 ## [Unreleased] – 2025-01-31 14:00
 
 ### Security
