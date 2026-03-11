@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased] – 2025-01-31 18:00
+
+### Security
+- **Host header injection remediated in nginx gateway**: `proxy_set_header Host $host` (attacker-controlled) removed from `gateway/nginx.conf`. Every `proxy_pass` location now sets an explicit, static `Host` header (`<container-name>:<port>`). The `server_name` directive is tightened from a catch-all `_` to an explicit list (`localhost 127.0.0.1`); requests with any other `Host` are rejected by nginx before reaching any upstream service.
+
+### Added
+- `doc/gateway-host-header-audit.md` — Full audit of the flagged `$host` usage: lists every affected directive and location, enumerates attack classes enabled by blind Host trust (injection, cache poisoning, SSRF, virtual-host confusion), and documents the explicit-host-per-location replacement strategy with a verification checklist.
+- `gateway/tests/test_host_header.sh` — Executable behavioral test script covering: valid Host values (`localhost`, `127.0.0.1`) are routed correctly to all five services and the frontend; injected Host values (`attacker.com`, `evil.example.com`, unexpected port) are rejected and do not return HTTP 200; empty Host header does not cause a 5xx error; upstream auth health endpoint responds with valid JSON regardless of inbound Host header.
+
+### Changed
+- `gateway/nginx.conf` — Removed server-level `proxy_set_header Host $host`. Added per-location `proxy_set_header Host <upstream-name>:<port>` for all twelve location blocks. Tightened `server_name` from `_` to `localhost 127.0.0.1`. Added security note comment at the top of the file referencing the audit document.
+
 ## [Unreleased] – 2025-01-31 16:00
 
 ### Security

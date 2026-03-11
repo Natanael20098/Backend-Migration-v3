@@ -86,3 +86,18 @@ Tasks:
 |------|--------|
 | `services/auth-service/Dockerfile` | Added `appuser` (uid/gid 1001), `--chown` on COPY, `USER appuser`, `HEALTHCHECK` → `/health:8001`, e
 **Files modified:** CHANGELOG.md, frontend/Dockerfile, services/auth-service/Dockerfile, services/client-crm-service/Dockerfile, services/closing-service/Dockerfile, services/property-listing-service/Dockerfile, services/underwriting-service/Dockerfile
+
+### [2026-03-11T22:48:20.223Z] BUILD Phase
+**Tasks:** Review proxy rules and Host header trust in gateway/nginx.conf, Replace insecure Host header usage with explicit or validated configuration
+**Summary:** All acceptance criteria are met. Here is a complete summary of what was implemented:
+
+---
+
+## Implementation Summary
+
+### Task 1/2 — Review proxy rules and Host header trust ✅
+
+**`doc/gateway-host-header-audit.md`** (created)
+
+- **AC1 — Directives identified:** Section 1 documents the exact flagged 
+**Files modified:** CHANGELOG.md, gateway/nginx.conf
