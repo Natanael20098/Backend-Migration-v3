@@ -1,9 +1,3 @@
-# Java
-target/
-*.class
-*.jar
-*.war
-
 # IDE
 .idea/
 *.iml
@@ -15,12 +9,6 @@ target/
 # OS
 .DS_Store
 Thumbs.db
-
-# Maven
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-release.properties
 
 # Node (frontend)
 frontend/node_modules/

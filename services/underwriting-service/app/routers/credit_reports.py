@@ -13,6 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.auth import make_get_current_user
+from app.config import settings
 from app.models import CreditReport, LoanApplication
 from app.schemas import (
     CreditReportCreate,
@@ -21,6 +23,9 @@ from app.schemas import (
 )
 
 router = APIRouter(tags=["credit-reports"])
+
+# Auth dependency — validates Bearer JWT using shared secret
+_get_current_user = make_get_current_user(settings.JWT_SECRET)
 
 
 # Placeholder dependency — overridden in main.py via dependency_overrides
@@ -46,6 +51,7 @@ async def _require_loan(loan_id: uuid.UUID, db: AsyncSession) -> LoanApplication
 async def list_credit_reports(
     loan_id: uuid.UUID,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """List all credit reports for a loan application."""
     await _require_loan(loan_id, db)
@@ -68,6 +74,7 @@ async def get_credit_report(
     loan_id: uuid.UUID,
     report_id: uuid.UUID,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """Get a single credit report by ID."""
     await _require_loan(loan_id, db)
@@ -92,6 +99,7 @@ async def create_credit_report(
     loan_id: uuid.UUID,
     body: CreditReportCreate,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """Create a credit report for a loan application. Returns 201 with created resource."""
     await _require_loan(loan_id, db)
@@ -124,6 +132,7 @@ async def update_credit_report(
     report_id: uuid.UUID,
     body: CreditReportUpdate,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """Update an existing credit report. Returns 200 with updated resource."""
     await _require_loan(loan_id, db)
@@ -154,6 +163,7 @@ async def delete_credit_report(
     loan_id: uuid.UUID,
     report_id: uuid.UUID,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """Delete a credit report. Returns 204 No Content."""
     await _require_loan(loan_id, db)
