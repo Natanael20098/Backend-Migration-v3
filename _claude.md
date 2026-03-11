@@ -42,3 +42,8 @@ Tasks:
 **Tasks:** Implement FastAPI Underwriting service against current PostgreSQL structures, Define Underwriting service boundary, entities, and preserved contracts, Cut over Underwriting routes and retire corresponding Java logic
 **Summary:** [WARNING: max turns exceeded] 
 **Files modified:** none
+
+### [2026-03-11T13:40:41.585Z] BUILD Phase
+**Tasks:** Implement FastAPI Closing service against current database structures, Define Closing service boundary, entities, and preserved contracts, Cut over Closing routes and retire corresponding Java logic
+**Summary:** [WARNING: max turns exceeded] Now add the closing-service to the gateway's depends_on and nginx config:
+**Files modified:** docker-compose.yml
