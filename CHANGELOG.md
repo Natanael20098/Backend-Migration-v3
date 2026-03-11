@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased] – 2025-01-31 14:00
+
+### Security
+- **CVE-2022-29217 remediated**: Replaced `python-jose[cryptography]==3.3.0` with `PyJWT==2.9.0` in all services that required a JWT library. `python-jose` is no longer present in any service's `requirements.txt`. PyJWT is actively maintained and does not require the `[cryptography]` extra for HS256.
+
+### Changed
+- `services/shared/auth.py` — Migrated from `from jose import JWTError, jwt` to `import jwt`; exception handler updated from `except JWTError:` to `except jwt.PyJWTError:`. Call signatures (`jwt.decode` / `jwt.encode`) are identical in PyJWT 2.x — no behavior change.
+- `services/auth-service/app/router.py` — Migrated from `from jose import jwt` to `import jwt`. Token issuance logic unchanged.
+- `services/auth-service/requirements.txt` — Replaced `python-jose[cryptography]==3.3.0` with `PyJWT==2.9.0`; added `pytest==8.2.0` for running unit tests.
+- `services/client-crm-service/requirements.txt` — Replaced `python-jose[cryptography]==3.3.0` with `PyJWT==2.9.0`.
+- `services/closing-service/requirements.txt` — Replaced `python-jose[cryptography]==3.3.0` with `PyJWT==2.9.0`.
+- `services/underwriting-service/requirements.txt` — Replaced `python-jose[cryptography]==3.3.0` with `PyJWT==2.9.0`.
+- `services/property-listing-service/requirements.txt` — Removed `python-jose[cryptography]==3.3.0` with **no replacement**. This service has no JWT operations and no import of `shared.auth`; the dependency was an unused copy-paste artifact.
+
+### Added
+- `doc/jwt-validation-policy.md` — Platform-wide JWT validation policy. Documents the allowed algorithm (HS256 only, never input-driven), required library (PyJWT ≥ 2.9.0), validated claims (`sub`, `exp`), where validation must occur (`shared/auth.py::verify_jwt` exclusively), token issuance ownership (`auth-service` only), error behavior (HTTP 401 for all failure modes), secret management requirements, and the per-service dependency inventory and strategy.
+- `services/auth-service/tests/test_jwt.py` — 6 JWT unit tests: encode/decode round trip, expired token (401), invalid signature (401), wrong algorithm (401), missing `sub` claim (401), algorithm-not-input-driven policy enforcement.
+- `services/auth-service/tests/__init__.py` — Package marker for test discovery.
+- `services/auth-service/pytest.ini` — pytest configuration: `testpaths = tests`, `pythonpath = ..` (makes `services/shared` importable during test runs).
+
 ## [Unreleased] – 2025-01-31 10:00
 
 ### Added
