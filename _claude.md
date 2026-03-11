@@ -71,3 +71,18 @@ Tasks:
 **Task 1/4 — Inventory python-jose usage:**
 - ✅ All files/services using python-jose identified (see `doc/jwt-validation-policy.md` Section 10)
 **Files modified:** CHANGELOG.md, services/auth-service/app/router.py, services/auth-service/requirements.txt, services/client-crm-service/requirements.txt, services/closing-service/requirements.txt, services/property-listing-service/requirements.txt, services/shared/auth.py, services/underwriting-service/requirements.txt
+
+### [2026-03-11T22:36:44.125Z] BUILD Phase
+**Tasks:** Fix auth-service Dockerfile to run as a non-privileged user, Create a secure Dockerfile baseline for FastAPI services, Fix Dockerfiles for client-crm, closing, property-listing, and underwriting services, Add HEALTHCHECK directives where appropriate
+**Summary:** All 4 tasks are fully implemented. Here's a complete summary:
+
+---
+
+## Implementation Summary
+
+### Files Modified (7 total)
+
+| File | Change |
+|------|--------|
+| `services/auth-service/Dockerfile` | Added `appuser` (uid/gid 1001), `--chown` on COPY, `USER appuser`, `HEALTHCHECK` → `/health:8001`, e
+**Files modified:** CHANGELOG.md, frontend/Dockerfile, services/auth-service/Dockerfile, services/client-crm-service/Dockerfile, services/closing-service/Dockerfile, services/property-listing-service/Dockerfile, services/underwriting-service/Dockerfile
