@@ -1,6 +1,6 @@
+import jwt
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
 
 bearer_scheme = HTTPBearer()
 
@@ -8,7 +8,8 @@ bearer_scheme = HTTPBearer()
 def verify_jwt(token: str, secret: str) -> str:
     """
     Validate a JWT token and return the subject (email).
-    Uses HMAC-HS256 to match the Java jjwt configuration.
+    Uses HMAC-HS256 — algorithm is hardcoded and never read from input.
+    See doc/jwt-validation-policy.md for the full validation policy.
     Raises HTTP 401 on any validation failure.
     """
     try:
@@ -17,7 +18,7 @@ def verify_jwt(token: str, secret: str) -> str:
         if subject is None:
             raise HTTPException(status_code=401, detail="Invalid or expired token")
         return subject
-    except JWTError:
+    except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
