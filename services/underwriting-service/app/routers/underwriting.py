@@ -13,6 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.auth import make_get_current_user
+from app.config import settings
 from app.models import LoanApplication, UnderwritingCondition, UnderwritingDecision
 from app.schemas import (
     UnderwritingConditionCreate,
@@ -24,6 +26,9 @@ from app.schemas import (
 )
 
 router = APIRouter(tags=["underwriting"])
+
+# Auth dependency — validates Bearer JWT using shared secret
+_get_current_user = make_get_current_user(settings.JWT_SECRET)
 
 
 # Placeholder dependency — overridden in main.py via dependency_overrides
@@ -72,6 +77,7 @@ async def _require_decision(
 async def list_underwriting_decisions(
     loan_id: uuid.UUID,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """List all underwriting decisions for a loan application."""
     await _require_loan(loan_id, db)
@@ -94,6 +100,7 @@ async def get_underwriting_decision(
     loan_id: uuid.UUID,
     decision_id: uuid.UUID,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """Get a single underwriting decision by ID."""
     await _require_loan(loan_id, db)
@@ -112,6 +119,7 @@ async def create_underwriting_decision(
     loan_id: uuid.UUID,
     body: UnderwritingDecisionCreate,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """Record an underwriting decision for a loan application. Returns 201."""
     await _require_loan(loan_id, db)
@@ -147,6 +155,7 @@ async def update_underwriting_decision(
     decision_id: uuid.UUID,
     body: UnderwritingDecisionUpdate,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """Update an existing underwriting decision. Returns 200."""
     await _require_loan(loan_id, db)
@@ -172,6 +181,7 @@ async def delete_underwriting_decision(
     loan_id: uuid.UUID,
     decision_id: uuid.UUID,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """Delete an underwriting decision. Returns 204 No Content."""
     await _require_loan(loan_id, db)
@@ -199,6 +209,7 @@ async def list_conditions(
     loan_id: uuid.UUID,
     decision_id: uuid.UUID,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """List all conditions for an underwriting decision."""
     await _require_loan(loan_id, db)
@@ -225,6 +236,7 @@ async def create_condition(
     decision_id: uuid.UUID,
     body: UnderwritingConditionCreate,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """Add a condition to an underwriting decision. Returns 201."""
     await _require_loan(loan_id, db)
@@ -260,6 +272,7 @@ async def update_condition(
     condition_id: uuid.UUID,
     body: UnderwritingConditionUpdate,
     db: AsyncSession = Depends(_get_db),
+    _: str = Depends(_get_current_user),
 ):
     """Update an underwriting condition. Returns 200."""
     await _require_loan(loan_id, db)
