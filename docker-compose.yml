@@ -1,8 +1,8 @@
 # HomeLend Pro — Local Development Stack
 #
-# Runs the Java monolith, FastAPI auth service, nginx gateway, and Next.js
-# frontend together. The database (Supabase PostgreSQL) is external and is
-# NOT included here — all services connect to it via DATABASE_URL / SPRING_DATASOURCE_URL.
+# Runs all FastAPI microservices, nginx gateway, and Next.js frontend together.
+# The database (Supabase PostgreSQL) is external and NOT included here.
+# All services connect via DATABASE_URL.
 #
 # Prerequisites:
 #   1. Copy .env.example to .env and fill in real values.
@@ -30,24 +30,6 @@ networks:
 
 services:
 
-  # ── Java Monolith ────────────────────────────────────────────────────────────
-  java-monolith:
-    build:
-      context: .
-      dockerfile: Dockerfile.java
-    ports:
-      - "8080:8080"
-    env_file: .env
-    environment:
-      # Map shared env vars to the Spring Boot property names
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-    networks:
-      - platform
-    restart: unless-stopped
-
   # ── Auth Service (FastAPI) ────────────────────────────────────────────────────
   auth-service:
     build:
@@ -62,6 +44,62 @@ services:
     restart: unless-stopped
     # No depends_on — database is external (Supabase)
 
+  # ── Property & Listing Service (FastAPI) ────────────────────────────────────
+  property-listing-service:
+    build:
+      # Context must be ./services so the shared/ module is accessible in the build
+      context: ./services
+      dockerfile: property-listing-service/Dockerfile
+    ports:
+      - "8002:8002"
+    env_file: .env
+    networks:
+      - platform
+    restart: unless-stopped
+    # No depends_on — database is external (Supabase)
+
+  # ── Underwriting Service (FastAPI) ───────────────────────────────────────────
+  underwriting-service:
+    build:
+      # Context must be ./services so the shared/ module is accessible in the build
+      context: ./services
+      dockerfile: underwriting-service/Dockerfile
+    ports:
+      - "8003:8003"
+    env_file: .env
+    networks:
+      - platform
+    restart: unless-stopped
+    # No depends_on — database is external (Supabase)
+
+  # ── Closing Service (FastAPI) ─────────────────────────────────────────────────
+  closing-service:
+    build:
+      # Context must be ./services so the shared/ module is accessible in the build
+      context: ./services
+      dockerfile: closing-service/Dockerfile
+    ports:
+      - "8004:8004"
+    env_file: .env
+    networks:
+      - platform
+    restart: unless-stopped
+    # No depends_on — database is external (Supabase)
+
+  # ── Client CRM Service (FastAPI) ─────────────────────────────────────────────
+  client-crm-service:
+    build:
+      # Context must be ./services so the shared/ module is accessible in the build
+      context: ./services
+      dockerfile: client-crm-service/Dockerfile
+    ports:
+      - "8005:8005"
+    env_file: .env
+    networks:
+      - platform
+    restart: unless-stopped
+    # No depends_on — database is external (Supabase)
+
   # ── API Gateway (nginx) ───────────────────────────────────────────────────────
   gateway:
     image: nginx:1.25-alpine
@@ -70,10 +108,11 @@ services:
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - java-monolith
       - auth-service
       - property-listing-service
+      - underwriting-service
       - closing-service
+      - client-crm-service
     networks:
       - platform
     restart: unless-stopped
@@ -95,34 +134,6 @@ services:
       - platform
     restart: unless-stopped
 
-  # ── Property & Listing Service (FastAPI) ────────────────────────────────────
-  property-listing-service:
-    build:
-      # Context must be ./services so the shared/ module is accessible in the build
-      context: ./services
-      dockerfile: property-listing-service/Dockerfile
-    ports:
-      - "8002:8002"
-    env_file: .env
-    networks:
-      - platform
-    restart: unless-stopped
-    # No depends_on — database is external (Supabase)
-
-  # ── Closing Service (FastAPI) ─────────────────────────────────────────────────
-  closing-service:
-    build:
-      # Context must be ./services so the shared/ module is accessible in the build
-      context: ./services
-      dockerfile: closing-service/Dockerfile
-    ports:
-      - "8004:8004"
-    env_file: .env
-    networks:
-      - platform
-    restart: unless-stopped
-    # No depends_on — database is external (Supabase)
-
   # ── Template: Adding a New FastAPI Service ────────────────────────────────────
   # Uncomment and customise this block when adding the next migrated service.
   # Also add an upstream + location block in gateway/nginx.conf.
@@ -132,7 +143,7 @@ services:
   #     context: ./services
   #     dockerfile: new-service/Dockerfile
   #   ports:
-  #     - "8005:8005"
+  #     - "8006:8006"
   #   env_file: .env
   #   networks: [platform]
   #   restart: unless-stopped
