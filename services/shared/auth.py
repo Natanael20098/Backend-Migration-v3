@@ -15,7 +15,7 @@ def verify_jwt(token: str, secret: str) -> str:
         payload = jwt.decode(token, secret, algorithms=["HS256"])
         subject: str = payload.get("sub")
         if subject is None:
-            raise HTTPException(status_code=401, detail="Invalid token: missing subject")
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
         return subject
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
