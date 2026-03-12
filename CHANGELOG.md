@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased] – 2026-03-12 10:00
+
+### Added
+- `doc/strangler-coexistence-strategy.md` — Route ownership registry, coexistence rules (CO-1 through CO-8), rollback trigger conditions with service-specific thresholds, and Java retirement gate status for side-by-side Java Spring Boot + Python FastAPI parallel run. Complements `doc/cutover-playbook.md` and `doc/api-compatibility-rules.md` without duplicating them.
+- `doc/bounded-contexts.md` — Bounded context definitions for Identity & Access (auth-service), Content/Property Listing (property-listing-service), Client CRM/Agent (client-crm-service), Loan Origination (Wave 2B, not yet deployed), Underwriting (underwriting-service), Closing/Settlement (closing-service), and Admin/Ops (Wave 4, Java-deferred). Includes shared kernel scope (explicit IS/IS NOT boundary for `services/shared/`), allowed and forbidden dependency directions, modular monolith extraction readiness assessment per service, and Clean Architecture layer mapping.
+- `doc/auth-flow-analysis.md` — End-to-end authentication flow (OTP request → OTP verification → JWT issuance → token validation on protected endpoints), legacy Java Spring Boot auth flow reconstruction, JWT token interoperability analysis (Java ↔ FastAPI mutual validity), protected route inventory with auth requirement per path prefix, principal propagation through the FastAPI dependency injection stack, and 7 identified migration risks (role regression, property-listing-service no-auth, secret rotation, HTTPBearer 403 vs Java 401, OTP schema, clock skew, ownership enforcement).
+- `doc/domain-persistence-analysis.md` — Entity map covering 35 entities across 8 domains with table names, PK types (UUID vs Long heterogeneity documented), and FK relationships; aggregate root candidates with child entity ownership; transaction boundary scope per service (async SQLAlchemy, per-request session, no cross-service transactions); shared-table coupling risks for `agents`, `clients`, `listings`, `loan_applications`, `audit_logs`; and Spring Data JPA migration risks including `MasterService` god class decomposition, missing ON DELETE CASCADE, denormalized column freeze policy, and Wave 2B loan_applications write gap.
+- `doc/legacy-endpoint-inventory.md` — Comprehensive Spring MVC / REST controller contract catalog covering all 11 path groups (auth, properties, listings, clients, leads, showings, offers, agents, brokerages, underwriting sub-resources, closing/settlement), request/response DTOs with camelCase field aliases, status code behavior per endpoint, cross-cutting compatibility-sensitive behaviors (R-RES-1, R-RES-2, R-STS-8, JWT 401/403, OTP rate-limit 429), and explicit unmigrated path inventory (loan-origination base CRUD — Wave 2B, admin — Wave 4) currently returning 404.
+
 ## [Unreleased] – 2025-01-31 18:00
 
 ### Security
